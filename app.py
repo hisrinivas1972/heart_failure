@@ -41,7 +41,6 @@ def summary_stats(df_filtered):
 def plot_dashboard(df_filtered):
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
 
-    # Layout: metrics & video side by side
     col1, col2 = st.columns([4, 1])
     with col1:
         gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
@@ -110,27 +109,34 @@ def play_heartbeat_audio():
         audio_bytes = f.read()
     encoded_audio = base64.b64encode(audio_bytes).decode()
 
-    # Hidden autoplay audio element
+    # Hidden audio tag for autoplay
     audio_html = f"""
-    <audio id="heartbeatAudio" autoplay loop style="display:none;">
+    <audio id="heartbeatAudio" loop autoplay muted style="display:none;">
         <source src="data:audio/mp3;base64,{encoded_audio}" type="audio/mp3">
-        Your browser does not support the audio element.
     </audio>
 
     <script>
-    // Attempt to play audio, fallback shows button if autoplay blocked
+    // Try to play muted audio for autoplay policy compliance
     const audio = document.getElementById('heartbeatAudio');
-    audio.play().catch(() => {{
-        const btn = document.createElement('button');
-        btn.textContent = '▶️ Play Heartbeat Sound';
-        btn.style.cssText = 'font-size:16px; padding:8px; margin:10px;';
-        btn.onclick = () => audio.play();
-        document.body.appendChild(btn);
+    audio.muted = true;
+    audio.play();
+
+    // Unmute after user interaction
+    window.addEventListener('click', () => {{
+        audio.muted = false;
+        audio.play();
     }});
     </script>
     """
-
     st.components.v1.html(audio_html, height=0)
+
+    # Button to unmute/play audio manually if needed
+    if st.button("🔊 Play Heartbeat Sound"):
+        st.experimental_javascript("""
+            var audio = document.getElementById('heartbeatAudio');
+            audio.muted = false;
+            audio.play();
+        """)
 
 def main():
     st.markdown("<h1 style='margin-bottom: 0rem;'>❤️ Heart Failure Clinical Dashboard</h1>", unsafe_allow_html=True)
@@ -138,10 +144,9 @@ def main():
 
     df = load_data()
 
-    # Play heartbeat audio
+    # Play heartbeat audio with muted autoplay + user click unmute
     play_heartbeat_audio()
 
-    # Use session state for gender selection persistence
     if "gender" not in st.session_state:
         st.session_state["gender"] = "Female"
 
