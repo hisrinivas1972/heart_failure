@@ -37,22 +37,26 @@ def summary_stats(df_filtered):
 
 def main():
     st.title("Heart Failure Clinical Dashboard")
-    
+
     df = load_data()
-    
+
     gender = st.radio("Select Gender:", ['Female', 'Male'])
     df_filtered = df[df['Gender'] == gender]
-    
+
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
     summary = summary_stats(df_filtered)
-    
-    st.write(f"### Dashboard for gender: {gender}")
-    st.write(f"Survival Rate: {survival_rate}%")
-    st.write(f"Average Age of Survival: {avg_age_survival}")
-    st.write(f"Total Survival: {survived}")
-    st.write(f"Total Death: {death}")
-    
-    # Plot 1
+
+    # KPIs at top in 4 columns
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Survival Rate", f"{survival_rate}%")
+    kpi2.metric("Average Age of Survival", f"{avg_age_survival}")
+    kpi3.metric("Total Survival", f"{survived}")
+    kpi4.metric("Total Death", f"{death}")
+
+    # Create 2x2 grid for plots
+    col1, col2 = st.columns(2)
+
+    # Plot 1 - Survival Count & Avg Serum Creatinine
     fig1 = go.Figure()
     fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
     fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], name='Avg Serum Creatinine', mode='lines+markers', marker_color='orange', yaxis='y2'))
@@ -60,11 +64,13 @@ def main():
         title='Survival Count & Avg Serum Creatinine by Age Group',
         yaxis=dict(title='Survival Count', side='left', color='red'),
         yaxis2=dict(title='Avg Serum Creatinine', overlaying='y', side='right', color='orange'),
-        legend=dict(x=0.1, y=1.1, orientation='h')
+        legend=dict(x=0.1, y=1.1, orientation='h'),
+        margin=dict(t=40)
     )
-    st.plotly_chart(fig1, use_container_width=True)
-    
-    # Plot 2
+    with col1:
+        st.plotly_chart(fig1, use_container_width=True)
+
+    # Plot 2 - Survival Count & Avg Ejection Fraction
     fig2 = go.Figure()
     fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
     fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], name='Avg Ejection Fraction', mode='lines+markers', marker_color='green', yaxis='y2'))
@@ -72,23 +78,30 @@ def main():
         title='Survival Count & Avg Ejection Fraction by Age Group',
         yaxis=dict(title='Survival Count', side='left', color='purple'),
         yaxis2=dict(title='Avg Ejection Fraction (%)', overlaying='y', side='right', color='green'),
-        legend=dict(x=0.1, y=1.1, orientation='h')
+        legend=dict(x=0.1, y=1.1, orientation='h'),
+        margin=dict(t=40)
     )
-    st.plotly_chart(fig2, use_container_width=True)
-    
-    # Plot 3
+    with col2:
+        st.plotly_chart(fig2, use_container_width=True)
+
+    # Next row of plots
+    col3, col4 = st.columns(2)
+
+    # Plot 3 - Survival Rate by Age Group
     fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
     fig3.update_yaxes(range=[0, 100])
-    st.plotly_chart(fig3, use_container_width=True)
-    
-    # Plot 4
+    with col3:
+        st.plotly_chart(fig3, use_container_width=True)
+
+    # Plot 4 - Impact of Smoking, HBP, Anaemia, Diabetes
     fig4 = go.Figure()
     fig4.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Smoking'], name='Smoking'))
     fig4.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['High_Blood_Pressure'], name='High Blood Pressure'))
     fig4.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Anaemia'], name='Anaemia'))
     fig4.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Diabetes'], name='Diabetes'))
-    fig4.update_layout(barmode='stack', title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes by Age Group')
-    st.plotly_chart(fig4, use_container_width=True)
+    fig4.update_layout(barmode='stack', title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes by Age Group', margin=dict(t=40))
+    with col4:
+        st.plotly_chart(fig4, use_container_width=True)
 
 if __name__ == "__main__":
     main()
