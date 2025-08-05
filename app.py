@@ -42,64 +42,73 @@ def summary_stats(df_filtered):
 def plot_dashboard(df_filtered):
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
     
-    # KPIs side by side with st.metric
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Survival Rate", f"{survival_rate}%")
-    col2.metric("Average Age of Survival", f"{avg_age_survival}")
-    col3.metric("Total Survival", f"{survived}")
-    col4.metric("Total Death", f"{death}")
+    # 4 KPIs side by side at top
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Survival Rate", f"{survival_rate}%")
+    kpi2.metric("Average Age of Survival", f"{avg_age_survival}")
+    kpi3.metric("Total Survival", f"{survived}")
+    kpi4.metric("Total Death", f"{death}")
     
     summary = summary_stats(df_filtered)
     
-    col5, col6 = st.columns(2)
+    # 2 rows × 4 columns grid for plots
+    cols = st.columns(4)
     
-    with col5:
-        fig1 = go.Figure()
-        fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
-        fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
-        fig1.update_layout(
-            title="Survival Count & Avg Serum Creatinine by Age Group",
-            yaxis=dict(title='Survival Count', color='red'),
-            yaxis2=dict(title='Avg Serum Creatinine', overlaying='y', side='right', color='orange'),
-            legend=dict(x=0, y=1.1, orientation='h')
-        )
-        st.plotly_chart(fig1, use_container_width=True)
+    # Plot 1: Survival Count & Avg Serum Creatinine
+    fig1 = go.Figure()
+    fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
+    fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
+    fig1.update_layout(
+        height=280,
+        margin=dict(l=20, r=20, t=30, b=20),
+        title="Survival Count & Avg Serum Creatinine",
+        yaxis=dict(title='Survival Count', color='red'),
+        yaxis2=dict(title='Avg Serum Creatinine', overlaying='y', side='right', color='orange'),
+        legend=dict(x=0, y=1.1, orientation='h')
+    )
+    cols[0].plotly_chart(fig1, use_container_width=True)
     
-    with col6:
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
-        fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
-        fig2.update_layout(
-            title="Survival Count & Avg Ejection Fraction by Age Group",
-            yaxis=dict(title='Survival Count', color='purple'),
-            yaxis2=dict(title='Avg Ejection Fraction (%)', overlaying='y', side='right', color='green'),
-            legend=dict(x=0, y=1.1, orientation='h')
-        )
-        st.plotly_chart(fig2, use_container_width=True)
+    # Plot 2: Survival Count & Avg Ejection Fraction
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
+    fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
+    fig2.update_layout(
+        height=280,
+        margin=dict(l=20, r=20, t=30, b=20),
+        title="Survival Count & Avg Ejection Fraction",
+        yaxis=dict(title='Survival Count', color='purple'),
+        yaxis2=dict(title='Avg Ejection Fraction (%)', overlaying='y', side='right', color='green'),
+        legend=dict(x=0, y=1.1, orientation='h')
+    )
+    cols[1].plotly_chart(fig2, use_container_width=True)
     
-    col7, col8 = st.columns(2)
+    # Plot 3: Survival Rate by Age Group (%)
+    fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
+    fig3.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
+    fig3.update_yaxes(range=[0, 100])
+    cols[2].plotly_chart(fig3, use_container_width=True)
     
-    with col7:
-        fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
-        fig3.update_yaxes(range=[0, 100])
-        st.plotly_chart(fig3, use_container_width=True)
-    
-    with col8:
-        fig4 = go.Figure()
-        x = summary['AgeGroup']
-        fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
-        fig4.add_trace(go.Bar(x=x, y=summary['High_Blood_Pressure'], name='High Blood Pressure', base=summary['Smoking']))
-        base2 = summary['Smoking'] + summary['High_Blood_Pressure']
-        fig4.add_trace(go.Bar(x=x, y=summary['Anaemia'], name='Anaemia', base=base2))
-        base3 = base2 + summary['Anaemia']
-        fig4.add_trace(go.Bar(x=x, y=summary['Diabetes'], name='Diabetes', base=base3))
-        fig4.update_layout(barmode='stack', title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes by Age Group')
-        st.plotly_chart(fig4, use_container_width=True)
+    # Plot 4: Impact of Smoking, HBP, Anaemia & Diabetes
+    fig4 = go.Figure()
+    x = summary['AgeGroup']
+    fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
+    fig4.add_trace(go.Bar(x=x, y=summary['High_Blood_Pressure'], name='High Blood Pressure', base=summary['Smoking']))
+    base2 = summary['Smoking'] + summary['High_Blood_Pressure']
+    fig4.add_trace(go.Bar(x=x, y=summary['Anaemia'], name='Anaemia', base=base2))
+    base3 = base2 + summary['Anaemia']
+    fig4.add_trace(go.Bar(x=x, y=summary['Diabetes'], name='Diabetes', base=base3))
+    fig4.update_layout(
+        barmode='stack',
+        height=280,
+        margin=dict(l=20, r=20, t=30, b=20),
+        title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes'
+    )
+    cols[3].plotly_chart(fig4, use_container_width=True)
 
 def main():
     st.title("Heart Failure Clinical Dashboard")
     df = load_data()
-    gender = st.radio("Select Gender:", options=['Female', 'Male'])
+    gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
     df_filtered = df[df['Gender'] == gender]
     plot_dashboard(df_filtered)
 
