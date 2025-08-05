@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+import base64
 
 st.set_page_config(layout="wide")
 
@@ -106,14 +107,25 @@ def plot_dashboard(df_filtered):
     cols[3].plotly_chart(fig4, use_container_width=True)
 
 def main():
-    # Title and Video side by side
+    # Title and looping video side by side
     col1, col2 = st.columns([3, 1])
     with col1:
         st.title("❤️ Heart Failure Clinical Dashboard")
     with col2:
-        video_file = open("heart.mp4", "rb").read()
-        st.video(video_file, format="video/mp4", start_time=0, loop=True)
-    
+        video_path = "heart.mp4"
+        # Read video file as bytes
+        with open(video_path, "rb") as video_file:
+            video_bytes = video_file.read()
+        # Encode to base64
+        encoded = base64.b64encode(video_bytes).decode()
+        video_html = f"""
+        <video width="100%" height="auto" autoplay loop muted playsinline>
+            <source src="data:video/mp4;base64,{encoded}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        """
+        st.components.v1.html(video_html, height=240)
+
     df = load_data()
     gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
     df_filtered = df[df['Gender'] == gender]
