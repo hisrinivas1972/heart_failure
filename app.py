@@ -51,7 +51,7 @@ def plot_dashboard(df_filtered):
     
     summary = summary_stats(df_filtered)
     
-    # 2 rows × 4 columns grid for plots
+    # 1 row × 4 columns grid for plots
     cols = st.columns(4)
     
     # Plot 1: Survival Count & Avg Serum Creatinine
@@ -112,7 +112,7 @@ def main():
         st.title("❤️ Heart Failure Clinical Dashboard")
     with col2:
         video_file = open("heart.mp4", "rb").read()
-        st.video(video_file, format="video/mp4", start_time=0)
+        st.video(video_file, format="video/mp4", start_time=0, loop=True)
     
     df = load_data()
     gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
