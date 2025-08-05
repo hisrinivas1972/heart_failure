@@ -4,7 +4,6 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 
-# Set Streamlit page layout to wide for full-width usage
 st.set_page_config(layout="wide")
 
 @st.cache_data
@@ -43,21 +42,21 @@ def summary_stats(df_filtered):
 def plot_dashboard(df_filtered):
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
     
-    st.markdown(f"### Survival Rate: {survival_rate}%")
-    st.markdown(f"### Average Age of Survival: {avg_age_survival}")
-    st.markdown(f"### Total Survival: {survived}")
-    st.markdown(f"### Total Death: {death}")
+    # KPIs side by side with st.metric
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Survival Rate", f"{survival_rate}%")
+    col2.metric("Average Age of Survival", f"{avg_age_survival}")
+    col3.metric("Total Survival", f"{survived}")
+    col4.metric("Total Death", f"{death}")
     
     summary = summary_stats(df_filtered)
     
-    col1, col2 = st.columns(2)
+    col5, col6 = st.columns(2)
     
-    with col1:
-        # Survival Count & Avg Serum Creatinine
+    with col5:
         fig1 = go.Figure()
         fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
         fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
-        
         fig1.update_layout(
             title="Survival Count & Avg Serum Creatinine by Age Group",
             yaxis=dict(title='Survival Count', color='red'),
@@ -66,12 +65,10 @@ def plot_dashboard(df_filtered):
         )
         st.plotly_chart(fig1, use_container_width=True)
     
-    with col2:
-        # Survival Count & Avg Ejection Fraction
+    with col6:
         fig2 = go.Figure()
         fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
         fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
-        
         fig2.update_layout(
             title="Survival Count & Avg Ejection Fraction by Age Group",
             yaxis=dict(title='Survival Count', color='purple'),
@@ -80,16 +77,14 @@ def plot_dashboard(df_filtered):
         )
         st.plotly_chart(fig2, use_container_width=True)
     
-    col3, col4 = st.columns(2)
+    col7, col8 = st.columns(2)
     
-    with col3:
-        # Survival Rate by Age Group
+    with col7:
         fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
         fig3.update_yaxes(range=[0, 100])
         st.plotly_chart(fig3, use_container_width=True)
     
-    with col4:
-        # Impact of Smoking, High Blood Pressure, Anaemia and Diabetes by Age Group
+    with col8:
         fig4 = go.Figure()
         x = summary['AgeGroup']
         fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
@@ -98,7 +93,6 @@ def plot_dashboard(df_filtered):
         fig4.add_trace(go.Bar(x=x, y=summary['Anaemia'], name='Anaemia', base=base2))
         base3 = base2 + summary['Anaemia']
         fig4.add_trace(go.Bar(x=x, y=summary['Diabetes'], name='Diabetes', base=base3))
-        
         fig4.update_layout(barmode='stack', title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes by Age Group')
         st.plotly_chart(fig4, use_container_width=True)
 
