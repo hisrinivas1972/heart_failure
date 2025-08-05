@@ -36,60 +36,68 @@ def summary_stats(df_filtered):
         Diabetes=('diabetes', 'sum'),
         Total=('DEATH_EVENT', 'count')
     ).reset_index()
-    
     grouped['Survival_Rate'] = grouped['Survival_Count'] / grouped['Total'] * 100
     return grouped
 
 def plot_dashboard(df_filtered):
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
-    
-    # 4 KPIs side by side at top
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric("Survival Rate", f"{survival_rate}%")
-    kpi2.metric("Average Age of Survival", f"{avg_age_survival}")
-    kpi3.metric("Total Survival", f"{survived}")
-    kpi4.metric("Total Death", f"{death}")
-    
+
+    # Display gender selector and metrics beside video
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        kpi1.metric("Survival Rate", f"{survival_rate}%")
+        kpi2.metric("Average Age of Survival", f"{avg_age_survival}")
+        kpi3.metric("Total Survival", f"{survived}")
+        kpi4.metric("Total Death", f"{death}")
+    with col2:
+        video_path = "heart.mp4"
+        with open(video_path, "rb") as video_file:
+            video_bytes = video_file.read()
+        encoded = base64.b64encode(video_bytes).decode()
+        video_html = f"""
+        <video width="100%" autoplay loop muted playsinline>
+            <source src="data:video/mp4;base64,{encoded}" type="video/mp4">
+        </video>
+        """
+        st.components.v1.html(video_html, height=180)
+
+    # Summary stats & plots
     summary = summary_stats(df_filtered)
-    
-    # 1 row × 4 columns grid for plots
     cols = st.columns(4)
-    
-    # Plot 1: Survival Count & Avg Serum Creatinine
+
+    # Plot 1
     fig1 = go.Figure()
     fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
     fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
     fig1.update_layout(
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title="Survival Count & Avg Serum Creatinine",
+        height=280, title="Survival Count & Avg Serum Creatinine",
         yaxis=dict(title='Survival Count', color='red'),
         yaxis2=dict(title='Avg Serum Creatinine', overlaying='y', side='right', color='orange'),
         legend=dict(x=0, y=1.1, orientation='h')
     )
     cols[0].plotly_chart(fig1, use_container_width=True)
-    
-    # Plot 2: Survival Count & Avg Ejection Fraction
+
+    # Plot 2
     fig2 = go.Figure()
     fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
     fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
     fig2.update_layout(
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title="Survival Count & Avg Ejection Fraction",
+        height=280, title="Survival Count & Avg Ejection Fraction",
         yaxis=dict(title='Survival Count', color='purple'),
         yaxis2=dict(title='Avg Ejection Fraction (%)', overlaying='y', side='right', color='green'),
         legend=dict(x=0, y=1.1, orientation='h')
     )
     cols[1].plotly_chart(fig2, use_container_width=True)
-    
-    # Plot 3: Survival Rate by Age Group (%)
+
+    # Plot 3
     fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
-    fig3.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
+    fig3.update_layout(height=280)
     fig3.update_yaxes(range=[0, 100])
     cols[2].plotly_chart(fig3, use_container_width=True)
-    
-    # Plot 4: Impact of Smoking, HBP, Anaemia & Diabetes
+
+    # Plot 4
     fig4 = go.Figure()
     x = summary['AgeGroup']
     fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
@@ -98,38 +106,17 @@ def plot_dashboard(df_filtered):
     fig4.add_trace(go.Bar(x=x, y=summary['Anaemia'], name='Anaemia', base=base2))
     base3 = base2 + summary['Anaemia']
     fig4.add_trace(go.Bar(x=x, y=summary['Diabetes'], name='Diabetes', base=base3))
-    fig4.update_layout(
-        barmode='stack',
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes'
-    )
+    fig4.update_layout(barmode='stack', height=280, title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes')
     cols[3].plotly_chart(fig4, use_container_width=True)
 
-def main():
-    # Title and looping video side by side
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.title("❤️ Heart Failure Clinical Dashboard")
-    with col2:
-        video_path = "heart.mp4"
-        # Read video file as bytes
-        with open(video_path, "rb") as video_file:
-            video_bytes = video_file.read()
-        # Encode to base64
-        encoded = base64.b64encode(video_bytes).decode()
-        video_html = f"""
-        <video width="100%" height="auto" autoplay loop muted playsinline>
-            <source src="data:video/mp4;base64,{encoded}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        """
-        st.components.v1.html(video_html, height=240)
+    return gender
 
+def main():
+    st.markdown("<h1 style='margin-bottom: 0rem;'>❤️ Heart Failure Clinical Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     df = load_data()
-    gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
-    df_filtered = df[df['Gender'] == gender]
-    plot_dashboard(df_filtered)
+    gender_selected = plot_dashboard(df[df['Gender'] == st.session_state.get("gender", "Female")])
+    st.session_state["gender"] = gender_selected  # Remember selection
 
 if __name__ == "__main__":
     main()
