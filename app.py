@@ -42,7 +42,7 @@ def summary_stats(df_filtered):
 def plot_dashboard(df_filtered):
     survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
 
-    # Display gender selector and metrics beside video
+    # Layout: Metrics + Video + Audio
     col1, col2 = st.columns([4, 1])
     with col1:
         gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
@@ -52,22 +52,34 @@ def plot_dashboard(df_filtered):
         kpi3.metric("Total Survival", f"{survived}")
         kpi4.metric("Total Death", f"{death}")
     with col2:
+        # Embed video
         video_path = "heart.mp4"
         with open(video_path, "rb") as video_file:
             video_bytes = video_file.read()
-        encoded = base64.b64encode(video_bytes).decode()
+        encoded_video = base64.b64encode(video_bytes).decode()
         video_html = f"""
         <video width="100%" autoplay loop muted playsinline>
-            <source src="data:video/mp4;base64,{encoded}" type="video/mp4">
+            <source src="data:video/mp4;base64,{encoded_video}" type="video/mp4">
         </video>
         """
         st.components.v1.html(video_html, height=180)
 
-    # Summary stats & plots
+        # Embed heartbeat audio
+        audio_path = "heartbeat.mp3"
+        with open(audio_path, "rb") as audio_file:
+            audio_bytes = audio_file.read()
+        encoded_audio = base64.b64encode(audio_bytes).decode()
+        audio_html = f"""
+        <audio autoplay loop>
+            <source src="data:audio/mp3;base64,{encoded_audio}" type="audio/mp3">
+        </audio>
+        """
+        st.components.v1.html(audio_html, height=0)
+
     summary = summary_stats(df_filtered)
     cols = st.columns(4)
 
-    # Plot 1
+    # Plot 1: Survival Count & Avg Serum Creatinine
     fig1 = go.Figure()
     fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
     fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
@@ -79,7 +91,7 @@ def plot_dashboard(df_filtered):
     )
     cols[0].plotly_chart(fig1, use_container_width=True)
 
-    # Plot 2
+    # Plot 2: Survival Count & Avg Ejection Fraction
     fig2 = go.Figure()
     fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
     fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
@@ -91,13 +103,13 @@ def plot_dashboard(df_filtered):
     )
     cols[1].plotly_chart(fig2, use_container_width=True)
 
-    # Plot 3
+    # Plot 3: Survival Rate by Age Group (%)
     fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
     fig3.update_layout(height=280)
     fig3.update_yaxes(range=[0, 100])
     cols[2].plotly_chart(fig3, use_container_width=True)
 
-    # Plot 4
+    # Plot 4: Impact of Smoking, High BP, Anaemia & Diabetes
     fig4 = go.Figure()
     x = summary['AgeGroup']
     fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
@@ -116,7 +128,7 @@ def main():
     st.markdown("<br>", unsafe_allow_html=True)
     df = load_data()
     gender_selected = plot_dashboard(df[df['Gender'] == st.session_state.get("gender", "Female")])
-    st.session_state["gender"] = gender_selected  # Remember selection
+    st.session_state["gender"] = gender_selected
 
 if __name__ == "__main__":
     main()
