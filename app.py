@@ -1,20 +1,16 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
 
-st.set_page_config(layout="wide")
+# Load your data (replace with your dataset path)
+df = pd.read_csv('heart_failure_clinical_records_dataset.csv')
+df['Gender'] = df['sex'].map({1: 'Male', 0: 'Female'})
 
-@st.cache_data
-def load_data():
-    url = "https://raw.githubusercontent.com/hisrinivas1972/heart_failure/main/heart_failure_clinical_records_dataset.csv"
-    df = pd.read_csv(url)
-    df['Gender'] = df['sex'].map({1: 'Male', 0: 'Female'})
-    age_bins = [0, 40, 50, 60, 70, 150]
-    age_labels = ['Below 40', '40-50', '51-60', '61-70', '71+']
-    df['AgeGroup'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
-    return df
+# Age group bins and labels
+age_bins = [0, 40, 50, 60, 70, 150]
+age_labels = ['Below 40', '40-50', '51-60', '61-70', '71+']
+df['AgeGroup'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
 
 def calculate_summary(df_filtered):
     total = len(df_filtered)
@@ -35,81 +31,91 @@ def summary_stats(df_filtered):
         Diabetes=('diabetes', 'sum'),
         Total=('DEATH_EVENT', 'count')
     ).reset_index()
-    
     grouped['Survival_Rate'] = grouped['Survival_Count'] / grouped['Total'] * 100
     return grouped
 
 def plot_dashboard(df_filtered):
-    survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
-    
-    # 4 KPIs side by side at top
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric("Survival Rate", f"{survival_rate}%")
-    kpi2.metric("Average Age of Survival", f"{avg_age_survival}")
-    kpi3.metric("Total Survival", f"{survived}")
-    kpi4.metric("Total Death", f"{death}")
-    
     summary = summary_stats(df_filtered)
-    
-    # 2 rows × 4 columns grid for plots
-    cols = st.columns(4)
-    
-    # Plot 1: Survival Count & Avg Serum Creatinine
-    fig1 = go.Figure()
-    fig1.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='red'))
-    fig1.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Serum_Creatinine'], mode='lines+markers', name='Avg Serum Creatinine', yaxis='y2', line=dict(color='orange')))
-    fig1.update_layout(
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title="Survival Count & Avg Serum Creatinine",
-        yaxis=dict(title='Survival Count', color='red'),
-        yaxis2=dict(title='Avg Serum Creatinine', overlaying='y', side='right', color='orange'),
-        legend=dict(x=0, y=1.1, orientation='h')
-    )
-    cols[0].plotly_chart(fig1, use_container_width=True)
-    
-    # Plot 2: Survival Count & Avg Ejection Fraction
-    fig2 = go.Figure()
-    fig2.add_trace(go.Bar(x=summary['AgeGroup'], y=summary['Survival_Count'], name='Survival Count', marker_color='purple'))
-    fig2.add_trace(go.Scatter(x=summary['AgeGroup'], y=summary['Avg_Ejection_Fraction'], mode='lines+markers', name='Avg Ejection Fraction', yaxis='y2', line=dict(color='green')))
-    fig2.update_layout(
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title="Survival Count & Avg Ejection Fraction",
-        yaxis=dict(title='Survival Count', color='purple'),
-        yaxis2=dict(title='Avg Ejection Fraction (%)', overlaying='y', side='right', color='green'),
-        legend=dict(x=0, y=1.1, orientation='h')
-    )
-    cols[1].plotly_chart(fig2, use_container_width=True)
-    
-    # Plot 3: Survival Rate by Age Group (%)
-    fig3 = px.line(summary, x='AgeGroup', y='Survival_Rate', markers=True, title='Survival Rate by Age Group (%)')
-    fig3.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=20))
-    fig3.update_yaxes(range=[0, 100])
-    cols[2].plotly_chart(fig3, use_container_width=True)
-    
-    # Plot 4: Impact of Smoking, HBP, Anaemia & Diabetes
-    fig4 = go.Figure()
-    x = summary['AgeGroup']
-    fig4.add_trace(go.Bar(x=x, y=summary['Smoking'], name='Smoking'))
-    fig4.add_trace(go.Bar(x=x, y=summary['High_Blood_Pressure'], name='High Blood Pressure', base=summary['Smoking']))
-    base2 = summary['Smoking'] + summary['High_Blood_Pressure']
-    fig4.add_trace(go.Bar(x=x, y=summary['Anaemia'], name='Anaemia', base=base2))
-    base3 = base2 + summary['Anaemia']
-    fig4.add_trace(go.Bar(x=x, y=summary['Diabetes'], name='Diabetes', base=base3))
-    fig4.update_layout(
-        barmode='stack',
-        height=280,
-        margin=dict(l=20, r=20, t=30, b=20),
-        title='Impact of Smoking, High Blood Pressure, Anaemia & Diabetes'
-    )
-    cols[3].plotly_chart(fig4, use_container_width=True)
+    fig, axs = plt.subplots(2, 2, figsize=(15, 12))
+
+    # Survival Count & Avg Serum Creatinine
+    ax1 = axs[0,0]
+    ax1.bar(summary['AgeGroup'], summary['Survival_Count'], color='red', label='Survival Count')
+    ax1.set_ylabel('Survival Count', color='red')
+    ax1.set_title('Survival Count & Avg Serum Creatinine by Age Group')
+    ax1.tick_params(axis='y', labelcolor='red')
+    ax1.legend(loc='upper left')
+
+    ax1b = ax1.twinx()
+    ax1b.plot(summary['AgeGroup'], summary['Avg_Serum_Creatinine'], color='orange', marker='o', label='Avg Serum Creatinine')
+    ax1b.set_ylabel('Avg Serum Creatinine', color='orange')
+    ax1b.tick_params(axis='y', labelcolor='orange')
+    ax1b.legend(loc='upper right')
+
+    # Survival Count & Avg Ejection Fraction
+    ax2 = axs[0,1]
+    ax2.bar(summary['AgeGroup'], summary['Survival_Count'], color='purple', label='Survival Count')
+    ax2.set_ylabel('Survival Count', color='purple')
+    ax2.set_title('Survival Count & Avg Ejection Fraction by Age Group')
+    ax2.tick_params(axis='y', labelcolor='purple')
+    ax2.legend(loc='upper left')
+
+    ax2b = ax2.twinx()
+    ax2b.plot(summary['AgeGroup'], summary['Avg_Ejection_Fraction'], color='green', marker='o', label='Avg Ejection Fraction')
+    ax2b.set_ylabel('Avg Ejection Fraction (%)', color='green')
+    ax2b.tick_params(axis='y', labelcolor='green')
+    ax2b.legend(loc='upper right')
+
+    # Survival Rate by Age Group (Line plot)
+    ax3 = axs[1,0]
+    ax3.plot(summary['AgeGroup'], summary['Survival_Rate'], marker='o', color='blue')
+    ax3.set_title('Survival Rate by Age Group (%)')
+    ax3.set_ylabel('Survival Rate (%)')
+    ax3.set_ylim(0, 100)
+
+    # Impact of Smoking, High Blood Pressure, Anaemia and Diabetes by Age Group (stacked bar)
+    ax4 = axs[1,1]
+    width = 0.6
+    x = np.arange(len(summary['AgeGroup']))
+    ax4.bar(x, summary['Smoking'], width, label='Smoking')
+    ax4.bar(x, summary['High_Blood_Pressure'], width, bottom=summary['Smoking'], label='High Blood Pressure')
+    ax4.bar(x, summary['Anaemia'], width, bottom=summary['Smoking'] + summary['High_Blood_Pressure'], label='Anaemia')
+    ax4.bar(x, summary['Diabetes'], width, bottom=summary['Smoking'] + summary['High_Blood_Pressure'] + summary['Anaemia'], label='Diabetes')
+    ax4.set_xticks(x)
+    ax4.set_xticklabels(summary['AgeGroup'])
+    ax4.set_title('Impact of Smoking, High Blood Pressure, Anaemia & Diabetes by Age Group')
+    ax4.legend()
+
+    plt.tight_layout()
+    st.pyplot(fig)
 
 def main():
-    st.title("Heart Failure Clinical Dashboard")
-    df = load_data()
-    gender = st.radio("Select Gender:", options=['Female', 'Male'], horizontal=True)
+    # Side-by-side header with video
+    col1, col2 = st.columns([3,1])
+    with col1:
+        st.title("Heart Failure Clinical Dashboard ❤️")
+    with col2:
+        video_file = open("heart.mp4", "rb")
+        video_bytes = video_file.read()
+        st.video(video_bytes, format="video/mp4", start_time=0)
+
+    # Gender selector
+    gender = st.radio("Select Gender:", ['Female', 'Male'])
+
+    # Filter data based on gender
     df_filtered = df[df['Gender'] == gender]
+
+    # Calculate summary stats
+    survival_rate, avg_age_survival, survived, death = calculate_summary(df_filtered)
+
+    # Show summary stats side by side
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Survival Rate", f"{survival_rate}%")
+    col2.metric("Avg Age of Survival", f"{avg_age_survival}")
+    col3.metric("Total Survival", f"{survived}")
+    col4.metric("Total Death", f"{death}")
+
+    # Show plots
     plot_dashboard(df_filtered)
 
 if __name__ == "__main__":
